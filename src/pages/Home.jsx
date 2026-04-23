@@ -54,6 +54,16 @@ export default function Home() {
   const newArrivals = products.slice(0, 5);
   const featured = products.slice(3, 8);
 
+  const isRestaurantOpen = (operatingHours) => {
+    if (!operatingHours) return true; // Default to open if no hours specified
+    const { openTime, closeTime } = operatingHours;
+    if (!openTime || !closeTime) return true;
+    
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: "2-digit", minute: "2-digit" });
+    return currentTime >= openTime && currentTime <= closeTime;
+  };
+
   return (
     <div className="w-full">
       {/* 
@@ -96,10 +106,23 @@ export default function Home() {
                </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {restaurants.map(restaurant => (
-                <Link to={`/shop?restaurant=${restaurant._id}`} key={restaurant._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition group">
-                  <div className="h-48 bg-gray-100 overflow-hidden">
-                    <img src={restaurant.image} className="w-full h-full object-cover group-hover:scale-105 transition" alt={restaurant.name} />
+              {restaurants.map(restaurant => {
+                const isOpen = isRestaurantOpen(restaurant.operatingHours);
+                
+                return (
+                <Link 
+                  to={isOpen ? `/shop?restaurant=${restaurant._id}` : '#'} 
+                  key={restaurant._id} 
+                  onClick={(e) => !isOpen && e.preventDefault()}
+                  className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition group ${isOpen ? 'hover:shadow-lg hover:-translate-y-1' : 'opacity-75 cursor-not-allowed'}`}
+                >
+                  <div className="h-48 bg-gray-100 overflow-hidden relative">
+                    <img src={restaurant.image} className={`w-full h-full object-cover transition ${isOpen ? 'group-hover:scale-105' : 'grayscale'}`} alt={restaurant.name} />
+                    {!isOpen && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="bg-danger text-white px-4 py-1.5 rounded-lg font-bold tracking-widest text-sm shadow-lg">CLOSED</span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-5">
                      <h3 className="font-bold text-lg mb-1 line-clamp-1">{restaurant.name}</h3>
@@ -110,7 +133,8 @@ export default function Home() {
                      </div>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
               {restaurants.length === 0 && (
                 <div className="col-span-full py-10 text-center text-gray-400">
                   No restaurants available yet. Are you a vendor? Create one in your dashboard!
