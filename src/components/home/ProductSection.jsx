@@ -24,6 +24,7 @@ export default function ProductSection({ title, productsList, viewAllLink }) {
             originalPrice={product.originalPrice}
             discount={product.discount}
             image={product.image}
+            restaurant={product.restaurant}
           />
         ))}
       </div>

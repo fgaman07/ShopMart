@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import SidebarCategories from '../components/layout/SidebarCategories';
 import ProductCard from '../components/product/ProductCard';
 
@@ -6,10 +7,24 @@ export default function Shop() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [products, setProducts] = useState([]);
 
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const keyword = searchParams.get('keyword') || '';
+  const restaurantId = searchParams.get('restaurant') || '';
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('/api/products');
+        let url = '/api/products';
+        const queryParams = new URLSearchParams();
+        if (keyword) queryParams.append('keyword', keyword);
+        if (restaurantId) queryParams.append('restaurant', restaurantId);
+        
+        if (queryParams.toString()) {
+           url += `?${queryParams.toString()}`;
+        }
+        
+        const response = await fetch(url);
         const data = await response.json();
         setProducts(data);
       } catch (error) {
@@ -17,7 +32,7 @@ export default function Shop() {
       }
     };
     fetchProducts();
-  }, []);
+  }, [keyword, restaurantId]);
 
   // For now, we'll just show all products as the categories in SidebarCategories 
   // don't perfectly match the product objects yet. 
@@ -48,7 +63,9 @@ export default function Shop() {
         <div className="flex-grow">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-4 border-b border-gray-100">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Shop All Products</h1>
+              <h1 className="text-2xl font-bold text-gray-800">
+                 {keyword ? `Search Results for "${keyword}"` : restaurantId ? 'Restaurant Menu' : 'Shop All Products'}
+              </h1>
               <p className="text-sm text-gray-500 mt-1">Showing {filteredProducts.length} results</p>
             </div>
             
@@ -74,6 +91,7 @@ export default function Shop() {
                 originalPrice={product.originalPrice}
                 discount={product.discount}
                 image={product.image}
+                restaurant={product.restaurant}
               />
             ))}
           </div>

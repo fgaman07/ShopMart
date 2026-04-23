@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
-export default function ProductCard({ id, title, weight, price, originalPrice, image, discount }) {
+export default function ProductCard({ id, title, weight, price, originalPrice, image, discount, restaurant }) {
   const { addToCart } = useCart();
 
-  const product = { id, title, weight, price, originalPrice, image, discount };
+  const product = { id, title, weight, price, originalPrice, image, discount, restaurant };
 
   return (
-    <div className="bg-white border border-gray-100 hover:border-primary/40 hover:shadow-card transition duration-200 rounded-lg overflow-hidden group w-full flex flex-col relative h-[380px] p-4 p-x-5">
+    <div className="bg-white border border-gray-100 hover:border-primary/40 hover-lift transition duration-200 rounded-lg overflow-hidden group w-full flex flex-col relative h-[380px] p-4 p-x-5 fade-in">
       
       {/* Top action row: Discount Badges and Heart */}
       <div className="flex justify-between items-start z-10 relative mb-2">

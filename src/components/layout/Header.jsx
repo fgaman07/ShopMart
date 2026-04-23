@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Search, User, Heart, ShoppingBag, Menu, MapPin, LogOut, ChevronDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,6 +9,8 @@ export default function Header() {
    const { userInfo, logout } = useAuth();
    const [showUserDropdown, setShowUserDropdown] = useState(false);
    const [userLocation, setUserLocation] = useState(null);
+   const [keyword, setKeyword] = useState('');
+   const navigate = useNavigate();
 
    useEffect(() => {
       // Try to get location from local storage first
@@ -78,14 +80,23 @@ export default function Header() {
             </div>
 
             {/* Search Bar */}
-            <div className="flex-grow max-w-3xl hidden md:flex relative border-2 border-gray-100 bg-gray-50 rounded-md items-center">
+            <form onSubmit={(e) => {
+               e.preventDefault();
+               if (keyword.trim()) {
+                  navigate(`/shop?keyword=${keyword}`);
+               } else {
+                  navigate('/shop');
+               }
+            }} className="flex-grow max-w-3xl hidden md:flex relative border-2 border-gray-100 bg-gray-50 rounded-md items-center">
                <input
                   type="text"
-                  placeholder="Search for products, categories or brands..."
+                  placeholder="Search for food, cuisines or restaurants..."
                   className="w-full bg-transparent px-4 py-3 text-sm focus:outline-none"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
                />
-               <button className="pr-4 text-gray-500 hover:text-primary"><Search size={20} /></button>
-            </div>
+               <button type="submit" className="pr-4 text-gray-500 hover:text-primary"><Search size={20} /></button>
+            </form>
 
             {/* Right Icons */}
             <div className="flex items-center space-x-4 md:space-x-8 flex-shrink-0">
