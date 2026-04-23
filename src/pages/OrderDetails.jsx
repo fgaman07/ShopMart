@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, Package, Truck, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
+import { io } from 'socket.io-client';
+import { CheckCircle, Package, Truck, CreditCard, ArrowLeft, Loader2, Navigation } from 'lucide-react';
 
 export default function OrderDetails() {
   const { id } = useParams();
@@ -33,6 +34,28 @@ export default function OrderDetails() {
        fetchOrder();
     }
   }, [id, userInfo]);
+
+  useEffect(() => {
+    // Determine backend URL based on environment if needed, here just relative or localhost
+    const socket = io(window.location.hostname === 'localhost' ? 'http://localhost:5000' : '/');
+    
+    if (id) {
+      socket.emit('joinOrder', id);
+    }
+
+    socket.on('statusUpdate', (updatedOrder) => {
+      setOrder(updatedOrder);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [id]);
+
+  const getStatusIndex = (status) => {
+    const statuses = ['Pending', 'Accepted', 'Preparing', 'Ready', 'PickedUp', 'Delivered'];
+    return Math.max(0, statuses.indexOf(status || 'Pending'));
+  };
 
   const deliverHandler = async () => {
     try {
@@ -91,6 +114,26 @@ export default function OrderDetails() {
             <span className={`px-4 py-2 rounded-full font-bold text-sm ${order.isDelivered ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'}`}>
                {order.isDelivered ? 'Delivered' : 'Processing'}
             </span>
+         </div>
+      </div>
+      
+      {/* Live Order Tracker */}
+      <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm mb-10">
+         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+            <Navigation className="text-primary"/> Live Tracking: {order.orderStatus || 'Pending'}
+         </h2>
+         <div className="relative pt-4 pb-8">
+            <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-100">
+               <div style={{ width: `${(getStatusIndex(order.orderStatus) / 5) * 100}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary transition-all duration-500"></div>
+            </div>
+            <div className="flex justify-between text-xs font-bold text-gray-500">
+               <span className={getStatusIndex(order.orderStatus) >= 0 ? 'text-primary' : ''}>Pending</span>
+               <span className={getStatusIndex(order.orderStatus) >= 1 ? 'text-primary' : ''}>Accepted</span>
+               <span className={getStatusIndex(order.orderStatus) >= 2 ? 'text-primary' : ''}>Preparing</span>
+               <span className={getStatusIndex(order.orderStatus) >= 3 ? 'text-primary' : ''}>Ready</span>
+               <span className={getStatusIndex(order.orderStatus) >= 4 ? 'text-primary' : ''}>Picked Up</span>
+               <span className={getStatusIndex(order.orderStatus) >= 5 ? 'text-primary' : ''}>Delivered</span>
+            </div>
          </div>
       </div>
 
