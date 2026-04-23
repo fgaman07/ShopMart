@@ -90,6 +90,20 @@ export default function Header() {
                         <Link to="/orders" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition" onClick={() => setShowUserDropdown(false)}>
                            <ShoppingBag size={16} /> My Orders
                         </Link>
+                        {userInfo.isAdmin && (
+                           <>
+                             <hr className="my-2 border-gray-100" />
+                             <Link to="/admin/userlist" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition" onClick={() => setShowUserDropdown(false)}>
+                                <User size={16} /> Users
+                             </Link>
+                             <Link to="/admin/productlist" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition" onClick={() => setShowUserDropdown(false)}>
+                                <ShoppingBag size={16} /> Products
+                             </Link>
+                             <Link to="/admin/orderlist" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition" onClick={() => setShowUserDropdown(false)}>
+                                <ShoppingBag size={16} /> Orders
+                             </Link>
+                           </>
+                        )}
                         <hr className="my-2 border-gray-100" />
                         <button 
                            onClick={() => { logout(); setShowUserDropdown(false); }}

@@ -7,6 +7,7 @@ export default function OrderDetails() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deliverLoading, setDeliverLoading] = useState(false);
   const { userInfo } = useAuth();
 
   useEffect(() => {
@@ -32,6 +33,29 @@ export default function OrderDetails() {
        fetchOrder();
     }
   }, [id, userInfo]);
+
+  const deliverHandler = async () => {
+    try {
+      setDeliverLoading(true);
+      const res = await fetch(`/api/orders/${order._id}/deliver`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrder(data);
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Failed to update delivery status');
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setDeliverLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -155,15 +179,28 @@ export default function OrderDetails() {
                   </div>
                </div>
 
-               {/* Success Message if just placed */}
-               {!order.isPaid && order.paymentMethod === 'COD' && (
-                  <div className="mt-8 p-4 bg-success/5 border border-success/20 rounded-2xl flex items-start gap-4">
-                     <CheckCircle className="text-success flex-shrink-0" size={20}/>
-                     <p className="text-[11px] text-gray-600 leading-relaxed font-medium">
-                        Your Cash on Delivery order has been successfully placed. Please keep **₹{order.totalPrice}** ready at the time of delivery.
-                     </p>
-                  </div>
-               )}
+                {/* Success Message if just placed */}
+                {!order.isPaid && order.paymentMethod === 'COD' && (
+                   <div className="mt-8 p-4 bg-success/5 border border-success/20 rounded-2xl flex items-start gap-4">
+                      <CheckCircle className="text-success flex-shrink-0" size={20}/>
+                      <p className="text-[11px] text-gray-600 leading-relaxed font-medium">
+                         Your Cash on Delivery order has been successfully placed. Please keep **₹{order.totalPrice}** ready at the time of delivery.
+                      </p>
+                   </div>
+                )}
+                
+                {/* Admin Delivery Button */}
+                {userInfo && userInfo.isAdmin && !order.isDelivered && (
+                   <div className="mt-6">
+                      <button 
+                         onClick={deliverHandler}
+                         disabled={deliverLoading}
+                         className="w-full bg-primary text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-primary-dark transition disabled:opacity-50"
+                      >
+                         {deliverLoading ? <Loader2 className="animate-spin" size={20}/> : 'Mark As Delivered'}
+                      </button>
+                   </div>
+                )}
             </div>
          </div>
       </div>
