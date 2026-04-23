@@ -8,6 +8,31 @@ export default function Header() {
   const { cartCount } = useCart();
   const { userInfo, logout } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    // Try to get location from local storage first
+    const savedLoc = localStorage.getItem('userLocation');
+    if (savedLoc) {
+      setUserLocation(JSON.parse(savedLoc));
+    } else {
+      // Ask for location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setUserLocation(loc);
+            localStorage.setItem('userLocation', JSON.stringify(loc));
+            // Trigger a custom event so other components know location was found
+            window.dispatchEvent(new Event('locationUpdated'));
+          },
+          (error) => {
+            console.error("Error getting location", error);
+          }
+        );
+      }
+    }
+  }, []);
 
   return (
     <header className="w-full bg-white border-b border-borderLight shadow-sm pb-1 relative z-50">
@@ -45,10 +70,10 @@ export default function Header() {
 
          {/* Location */}
          <div className="hidden xl:flex items-center text-xs opacity-80 flex-shrink-0 cursor-pointer">
-            <MapPin size={16} className="text-gray-400 mr-1"/>
+            <MapPin size={16} className={userLocation ? "text-primary mr-1" : "text-gray-400 mr-1"}/>
             <div className="leading-tight">
                <span className="block text-gray-500">Deliver to</span>
-               <span className="font-semibold text-black">all</span>
+               <span className="font-semibold text-black">{userLocation ? 'Current Location' : 'all'}</span>
             </div>
          </div>
 

@@ -5,9 +5,12 @@ import HeroBanner from '../components/home/HeroBanner';
 import FeaturesStrip from '../components/home/FeaturesStrip';
 import PromoBanners from '../components/home/PromoBanners';
 import ProductSection from '../components/home/ProductSection';
+import { Store } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -19,7 +22,33 @@ export default function Home() {
         console.error("Error fetching products:", error);
       }
     };
+
+    const fetchRestaurants = async () => {
+      try {
+        let url = '/api/restaurants';
+        const savedLoc = localStorage.getItem('userLocation');
+        if (savedLoc) {
+          const { lat, lng } = JSON.parse(savedLoc);
+          url += `?lat=${lat}&lng=${lng}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        setRestaurants(data);
+      } catch (error) {
+        console.error("Error fetching restaurants:", error);
+      }
+    };
+
     fetchProducts();
+    fetchRestaurants();
+    
+    // Re-fetch if location updates
+    const handleLocationUpdate = () => {
+      fetchRestaurants();
+    };
+    window.addEventListener('locationUpdated', handleLocationUpdate);
+    return () => window.removeEventListener('locationUpdated', handleLocationUpdate);
   }, []);
 
   const newArrivals = products.slice(0, 5);
@@ -58,6 +87,37 @@ export default function Home() {
       {/* Full Width Sections */}
       <div className="w-full">
          <FeaturesStrip />
+         
+         {/* Restaurants Section (NEW) */}
+         <div className="my-16">
+            <div className="flex items-center justify-between mb-8 border-b border-gray-100 pb-4">
+               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                 <Store className="text-primary"/> Featured Restaurants
+               </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {restaurants.map(restaurant => (
+                <Link to={`/shop?restaurant=${restaurant._id}`} key={restaurant._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition group">
+                  <div className="h-48 bg-gray-100 overflow-hidden">
+                    <img src={restaurant.image} className="w-full h-full object-cover group-hover:scale-105 transition" alt={restaurant.name} />
+                  </div>
+                  <div className="p-5">
+                     <h3 className="font-bold text-lg mb-1 line-clamp-1">{restaurant.name}</h3>
+                     <p className="text-sm text-gray-500 mb-3 line-clamp-2">{restaurant.description}</p>
+                     <div className="flex items-center justify-between text-xs font-semibold">
+                       <span className="text-yellow-500">★ {restaurant.rating ? restaurant.rating.toFixed(1) : 'New'}</span>
+                       <span className="text-gray-400">{restaurant.numReviews} Reviews</span>
+                     </div>
+                  </div>
+                </Link>
+              ))}
+              {restaurants.length === 0 && (
+                <div className="col-span-full py-10 text-center text-gray-400">
+                  No restaurants available yet. Are you a vendor? Create one in your dashboard!
+                </div>
+              )}
+            </div>
+         </div>
          
          <PromoBanners />
 

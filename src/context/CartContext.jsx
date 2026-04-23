@@ -22,6 +22,15 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product) => {
     setCartItems((prevItems) => {
+      // Single restaurant validation
+      if (prevItems.length > 0 && product.restaurant) {
+        const currentRestaurantId = prevItems[0].restaurant;
+        if (currentRestaurantId && currentRestaurantId !== product.restaurant) {
+          alert('You can only order from one restaurant at a time. Please clear your cart to order from a different restaurant.');
+          return prevItems;
+        }
+      }
+
       const existingItem = prevItems.find((item) => item.id === product.id);
       if (existingItem) {
         return prevItems.map((item) =>
