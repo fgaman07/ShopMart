@@ -14,6 +14,7 @@ import ProductList from './pages/admin/ProductList';
 import ProductEdit from './pages/admin/ProductEdit';
 import OrderList from './pages/admin/OrderList';
 import VendorDashboard from './pages/vendor/VendorDashboard';
+import DriverDashboard from './pages/driver/DriverDashboard';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 
@@ -34,6 +35,8 @@ function App() {
               <Route path="register" element={<Register />} />
               {/* Vendor Routes */}
               <Route path="vendor/dashboard" element={<VendorDashboard />} />
+              {/* Driver Routes */}
+              <Route path="driver/dashboard" element={<DriverDashboard />} />
               {/* Admin Routes */}
               <Route path="admin/userlist" element={<UserList />} />
               <Route path="admin/user/:id/edit" element={<UserEdit />} />
