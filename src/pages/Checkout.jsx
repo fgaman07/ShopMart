@@ -1,61 +1,145 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, CreditCard, ShoppingBag, CheckCircle, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { MapPin, CreditCard, ShoppingBag, CheckCircle, ArrowRight, ArrowLeft, Loader2, Tag, X } from 'lucide-react';
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, cartTotal, clearCart } = useCart();
   const { userInfo } = useAuth();
   
-  const [step, setStep] = useState(1); // 1: Shipping, 2: Payment, 3: Review
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponData, setCouponData] = useState(null);
+  const [couponError, setCouponError] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const discount = couponData ? couponData.discountAmount : 0;
+  const finalTotal = Math.max(0, cartTotal - discount);
 
   // Form States
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [country, setCountry] = useState('India');
-  const [paymentMethod, setPaymentMethod] = useState('PayPal');
+  const [paymentMethod, setPaymentMethod] = useState('COD');
+
+  // Load Razorpay SDK
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (document.getElementById('razorpay-script')) { resolve(true); return; }
+      const script = document.createElement('script');
+      script.id = 'razorpay-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   useEffect(() => {
-    if (!userInfo) {
-      navigate('/login?redirect=/checkout');
-    }
-    if (cartItems.length === 0) {
-      navigate('/cart');
-    }
+    if (!userInfo) navigate('/login?redirect=/checkout');
+    if (cartItems.length === 0) navigate('/cart');
   }, [userInfo, cartItems, navigate]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    setCouponData(null);
+    try {
+      const res = await fetch('/api/coupons/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userInfo.token}` },
+        body: JSON.stringify({ code: couponCode, orderTotal: cartTotal }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCouponError(data.message); }
+      else { setCouponData(data); }
+    } catch (err) { setCouponError('Failed to apply coupon.'); }
+    setCouponLoading(false);
+  };
 
   const placeOrderHandler = async () => {
     try {
       setLoading(true);
+
+      if (paymentMethod === 'Razorpay') {
+        // Step 1 – load Razorpay SDK
+        const loaded = await loadRazorpayScript();
+        if (!loaded) { alert('Failed to load Razorpay. Check your internet connection.'); setLoading(false); return; }
+
+        // Step 2 – create order in our backend first
+        const orderRes = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userInfo.token}` },
+          body: JSON.stringify({
+            orderItems: cartItems, shippingAddress: { address, city, postalCode, country },
+            paymentMethod, itemsPrice: cartTotal, shippingPrice: 0, taxPrice: 0,
+            totalPrice: finalTotal, couponCode: couponData ? couponData.code : null,
+          }),
+        });
+        const orderData = await orderRes.json();
+        if (!orderRes.ok) { alert(orderData.message || 'Order creation failed'); setLoading(false); return; }
+
+        // Step 3 – create Razorpay payment order
+        const rzpRes = await fetch('/api/payment/razorpay/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userInfo.token}` },
+          body: JSON.stringify({ amount: finalTotal }),
+        });
+        const rzpData = await rzpRes.json();
+        if (!rzpRes.ok) { alert(rzpData.message || 'Payment init failed'); setLoading(false); return; }
+
+        // Step 4 – open Razorpay modal
+        const options = {
+          key: rzpData.key,
+          amount: rzpData.amount,
+          currency: rzpData.currency,
+          name: 'ShopStore',
+          description: 'Food Delivery Order',
+          order_id: rzpData.id,
+          handler: async (response) => {
+            // Step 5 – verify payment
+            const verifyRes = await fetch('/api/payment/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userInfo.token}` },
+              body: JSON.stringify({ ...response, orderId: orderData._id }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              clearCart();
+              navigate(`/order/${orderData._id}`);
+            } else {
+              alert('Payment verified but update failed. Contact support.');
+            }
+          },
+          prefill: { name: userInfo.name, email: userInfo.email },
+          theme: { color: '#634C9F' },
+          modal: { ondismiss: () => setLoading(false) },
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        return; // loading state handled by modal
+      }
+
+      // COD / other methods
       const response = await fetch('/api/orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userInfo.token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userInfo.token}` },
         body: JSON.stringify({
-          orderItems: cartItems,
-          shippingAddress: { address, city, postalCode, country },
-          paymentMethod,
-          itemsPrice: cartTotal,
-          shippingPrice: 0,
-          taxPrice: 0,
-          totalPrice: cartTotal,
+          orderItems: cartItems, shippingAddress: { address, city, postalCode, country },
+          paymentMethod, itemsPrice: cartTotal, shippingPrice: 0, taxPrice: 0,
+          totalPrice: finalTotal, couponCode: couponData ? couponData.code : null,
         }),
       });
-
       const data = await response.json();
-
-      if (response.ok) {
-        clearCart();
-        navigate(`/order/${data._id}`);
-      } else {
-        alert(data.message || 'Order failed');
-      }
+      if (response.ok) { clearCart(); navigate(`/order/${data._id}`); }
+      else { alert(data.message || 'Order failed'); }
     } catch (err) {
       console.error(err);
       alert('Internal Server Error');
@@ -177,6 +261,18 @@ export default function Checkout() {
                            <span className="block text-xs text-gray-500">Pay when you receive your items</span>
                         </div>
                      </label>
+
+                     <label className={`flex items-center gap-4 p-6 border-2 rounded-2xl cursor-pointer transition-all ${paymentMethod === 'Razorpay' ? 'border-primary bg-primary/5' : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                        <input type="radio" className="hidden" name="payment" value="Razorpay" checked={paymentMethod === 'Razorpay'} onChange={(e) => setPaymentMethod(e.target.value)} />
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'Razorpay' ? 'border-primary' : 'border-gray-300'}`}>
+                           {paymentMethod === 'Razorpay' && <div className="w-3 h-3 bg-primary rounded-full" />}
+                        </div>
+                        <div className="flex-grow">
+                           <span className="block font-bold text-gray-900">Pay Online (Razorpay)</span>
+                           <span className="block text-xs text-gray-500">UPI, Cards, Net Banking & Wallets</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">⚡ Instant</div>
+                     </label>
                   </div>
                   <div className="mt-10 flex justify-between">
                      <button onClick={() => setStep(1)} className="text-gray-400 font-bold flex items-center gap-2 hover:text-gray-900 transition">
@@ -240,21 +336,59 @@ export default function Checkout() {
             )}
          </div>
 
-         {/* Mini Summary Sidebar */}
          <div className="w-full lg:w-1/3 bg-gray-50 rounded-3xl p-8 border border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-6">Order Total</h3>
+
+            {/* Coupon Input */}
+            <div className="mb-5">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1"><Tag className="w-3 h-3" /> Promo Code</p>
+              {couponData ? (
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+                  <div>
+                    <p className="text-xs font-bold text-green-700">{couponData.code} applied!</p>
+                    <p className="text-xs text-green-600">{couponData.message}</p>
+                  </div>
+                  <button onClick={() => { setCouponData(null); setCouponCode(''); }} className="text-green-500 hover:text-red-500"><X className="w-4 h-4" /></button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    value={couponCode}
+                    onChange={e => setCouponCode(e.target.value)}
+                    placeholder="Enter code..."
+                    onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition"
+                  />
+                  <button
+                    onClick={handleApplyCoupon}
+                    disabled={couponLoading || !couponCode.trim()}
+                    className="bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 transition disabled:opacity-50"
+                  >
+                    {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                  </button>
+                </div>
+              )}
+              {couponError && <p className="text-red-500 text-xs mt-1.5">{couponError}</p>}
+            </div>
+
             <div className="space-y-4 mb-6">
                <div className="flex justify-between text-sm text-gray-500">
                   <span>Subtotal ({cartItems.length} items)</span>
                   <span className="font-bold text-gray-900">₹{cartTotal}</span>
                </div>
+               {discount > 0 && (
+                 <div className="flex justify-between text-sm text-green-600">
+                   <span>Discount ({couponData.code})</span>
+                   <span className="font-bold">- ₹{discount.toFixed(2)}</span>
+                 </div>
+               )}
                <div className="flex justify-between text-sm text-gray-500">
                   <span>Shipping</span>
                   <span className="text-success font-bold">Free</span>
                </div>
                <div className="pt-4 border-t border-gray-200 flex justify-between items-end">
                   <span className="font-bold text-gray-900">Total</span>
-                  <span className="text-3xl font-bold text-primary tracking-tight">₹{cartTotal}</span>
+                  <span className="text-3xl font-bold text-primary tracking-tight">₹{finalTotal.toFixed(2)}</span>
                </div>
             </div>
             <div className="p-4 bg-white rounded-xl border border-gray-200 text-xs text-gray-400 flex items-center gap-3">

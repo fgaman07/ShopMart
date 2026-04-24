@@ -111,9 +111,8 @@ export default function Home() {
                 
                 return (
                 <Link 
-                  to={isOpen ? `/shop?restaurant=${restaurant._id}` : '#'} 
+                  to={`/restaurant/${restaurant._id}`}
                   key={restaurant._id} 
-                  onClick={(e) => !isOpen && e.preventDefault()}
                   className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition group ${isOpen ? 'hover:shadow-lg hover:-translate-y-1' : 'opacity-75 cursor-not-allowed'}`}
                 >
                   <div className="h-48 bg-gray-100 overflow-hidden relative">

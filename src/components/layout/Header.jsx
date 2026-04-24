@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Search, User, Heart, ShoppingBag, Menu, MapPin, LogOut, ChevronDown } from 'lucide-react';
+import { Search, User, Heart, ShoppingBag, Menu, MapPin, LogOut, ChevronDown, Tag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 export default function Header() {
    const { cartCount } = useCart();
@@ -135,7 +136,8 @@ export default function Header() {
                                  <Link to="/admin/productlist" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition" onClick={() => setShowUserDropdown(false)}>
                                     <ShoppingBag size={16} /> Products
                                  </Link>
-                                 <Link to="/admin/orderlist" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition" onClick={() => setShowUserDropdown(false)}>
+                                 <Link to="/admin/coupons" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition" onClick={() => setShowUserDropdown(false)}><Tag size={16} /> Coupons</Link>
+                                  <Link to="/admin/orderlist" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary transition" onClick={() => setShowUserDropdown(false)}>
                                     <ShoppingBag size={16} /> Orders
                                  </Link>
                               </>
@@ -164,6 +166,7 @@ export default function Header() {
                   <Heart size={26} strokeWidth={1.5} className="text-gray-700" />
                   <span className="absolute -top-1 -right-2 bg-danger text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">0</span>
                </Link>
+               <NotificationBell />
                <Link to="/cart" className="relative group hover:text-primary">
                   <ShoppingBag size={26} strokeWidth={1.5} className="text-gray-700" />
                   <span className="absolute -top-1 -right-2 bg-danger text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">{cartCount}</span>
