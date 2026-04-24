@@ -1,0 +1,63 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Layout from './components/layout/Layout';
+import Home from './pages/Home';
+import Shop from './pages/Shop';
+import ProductDetails from './pages/ProductDetails';
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import OrderDetails from './pages/OrderDetails';
+import RestaurantPage from './pages/RestaurantPage';
+import Profile from './pages/Profile';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UserList from './pages/admin/UserList';
+import UserEdit from './pages/admin/UserEdit';
+import ProductList from './pages/admin/ProductList';
+import ProductEdit from './pages/admin/ProductEdit';
+import OrderList from './pages/admin/OrderList';
+import CouponList from './pages/admin/CouponList';
+import VendorDashboard from './pages/vendor/VendorDashboard';
+import DriverDashboard from './pages/driver/DriverDashboard';
+import { CartProvider } from './context/CartContext';
+import { AuthProvider } from './context/AuthContext';
+
+function App() {
+  return (
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="shop" element={<Shop />} />
+              <Route path="product/:id" element={<ProductDetails />} />
+              <Route path="cart" element={<Cart />} />
+              <Route path="checkout" element={<Checkout />} />
+              <Route path="order/:id" element={<OrderDetails />} />
+              <Route path="restaurant/:id" element={<RestaurantPage />} />
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<Register />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="orders" element={<Profile />} />
+              {/* Vendor Routes */}
+              <Route path="vendor/dashboard" element={<VendorDashboard />} />
+              {/* Driver Routes */}
+              <Route path="driver/dashboard" element={<DriverDashboard />} />
+              {/* Admin Routes */}
+              <Route path="admin/dashboard" element={<AdminDashboard />} />
+              <Route path="admin/userlist" element={<UserList />} />
+              <Route path="admin/user/:id/edit" element={<UserEdit />} />
+              <Route path="admin/productlist" element={<ProductList />} />
+              <Route path="admin/product/:id/edit" element={<ProductEdit />} />
+              <Route path="admin/orderlist" element={<OrderList />} />
+              <Route path="admin/coupons" element={<CouponList />} />
+            </Route>
+          </Routes>
+        </Router>
+      </CartProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;
